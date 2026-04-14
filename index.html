@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPM-20 抖音人设定位测试</title>
+    <style>
+        :root {
+            --primary: #00f2ea;
+            --secondary: #ff0050;
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --text: #c9d1d9;
+        }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        #app { max-width: 600px; width: 100%; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .progress-bar { height: 6px; background: #30363d; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        #progress-inner { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; transition: width 0.3s; }
+        .card { background: var(--card-bg); border: 1px solid #30363d; border-radius: 12px; padding: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .question-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 20px; color: #fff; }
+        .options-list { display: flex; flex-direction: column; gap: 10px; }
+        .option-btn { background: #21262d; border: 1px solid #363b42; color: var(--text); padding: 14px; border-radius: 8px; cursor: pointer; text-align: left; transition: 0.2s; }
+        .option-btn:hover { border-color: var(--primary); background: #2d333b; }
+        .result-page { display: none; }
+        .result-header { font-size: 1.4rem; color: var(--primary); margin-bottom: 15px; text-align: center; font-weight: bold; }
+        .result-desc { background: #0d1117; padding: 20px; border-radius: 8px; border-left: 4px solid var(--secondary); white-space: pre-wrap; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="header">
+        <h2>短视频人设定位测试 (上海大A)</h2>
+        <p style="font-size: 0.9rem; color: #888;">找到你“普世且陌生”的爆款基因</p>
+    </div>
+    <div id="quiz-container">
+        <div class="progress-bar"><div id="progress-inner"></div></div>
+        <div class="card">
+            <div id="question-text" class="question-title">正在准备题目...</div>
+            <div id="options-container" class="options-list"></div>
+        </div>
+    </div>
+    <div id="result-page" class="result-page">
+        <div class="card">
+            <div id="result-title" class="result-header"></div>
+            <div id="result-content" class="result-desc"></div>
+            <button onclick="location.reload()" style="margin-top:20px; width:100%; padding:10px; background:none; border:1px solid #555; color:#888; border-radius:5px; cursor:pointer;">重新测试</button>
+        </div>
+    </div>
+</div>
+<script>
+    const questions = [
+        { q: "看到一个热门争议事件，你的第一反应是：", a: "寻找背后的逻辑或避坑指南", b: "产生强烈的情绪共鸣或想吐槽", c: "思考这个现象背后的社会本质", d: "觉得这个画面的光影/构图可以借鉴" },
+        { q: "如果要把“非牛顿流体原理”讲给外行听，你会：", a: "给出一套标准的选型和避坑公式", b: "讲一个关于它如何“固执”的拟人故事", c: "用水泵和水流做类比，让他们秒懂底层物理", d: "拍一段极具美感的微距视频" },
+        { q: "你希望粉丝看完视频后的动作是：", a: "点击收藏，以后照着做", b: "转发给朋友，说“太真实了”", c: "在评论区引发深度讨论或自我反思", d: "纯粹觉得赏心悦目，反复观看" },
+        { q: "你的朋友圈通常发什么？", a: "纯干货、好物分享或技能心得", b: "生活中的碎碎念、糗事或小情绪", c: "对某个行业、新闻的毒辣点评", d: "很有质感的风景图或极简的生活瞬间" },
+        { q: "你最无法忍受的内容是：", a: "废话连篇，没有结论", b: "虚假精致，高高在上", c: "逻辑混乱，常识错误", d: "审美低俗，画面混乱" },
+        { q: "面对镜头时，你更舒服的状态是：", a: "像老师一样，条理清晰地教学", b: "像老友喝酒，随性地聊天吐槽", c: "像旁观者，冷静地画外音叙述", d: "像表演者，有夸张的动作或视觉反差" },
+        { q: "你的语言习惯更倾向于：", a: "“第一，第二，第三...”", b: "“救命，家人们，谁懂啊...”", c: "“本质上，这其实是一个逻辑问题...”", d: "很少说话，主要靠BGM和画面叙事" },
+        { q: "如果视频出错了，你会：", a: "专门出一期勘误，严谨修正", b: "自黑一把，把尴尬变成梗", c: "在评论区置顶解释，顺便补丁新观点", d: "只要画面美，小瑕疵也是一种缺憾美" },
+        { q: "你对“蹭热点”的态度是：", a: "只蹭与我专业相关的硬核热点", b: "只要有情绪共鸣，什么都能聊", c: "站在热点的对立面，寻找反常识角度", d: "用我的视觉风格重新演绎这个热点" },
+        { q: "你更喜欢的视频剪辑节奏是：", a: "极快，信息密度爆炸，没有废话", b: "有呼吸感，有笑点和停顿", c: "沉稳，配合低沉的旁观者视角", d: "卡点极准，充满电影感或艺术张力" },
+        { q: "你最喜欢的粉丝称呼是：", a: "“学长/老师”", b: "“朋友/兄弟/姐妹”", c: "“独行侠/怪人”", d: "“主理人/艺术家”" },
+        { q: "你会愿意在视频里展示你的工作台吗？", a: "会，而且要展示最硬核的设备", b: "会，尤其是乱七八糟、充满生活气息的样子", c: "偶尔，作为我思考问题的背景", d: "会，但必须摆拍得非常精致" },
+        { q: "面对黑粉，你会：", a: "用数据和逻辑直接打脸", b: "发个视频自嘲，引导粉丝一起笑", c: "完全无视，觉得他们不在一个维度", d: "优雅地拉黑，不破坏账号调性" },
+        { q: "你的理想直播间氛围是：", a: "像教室，大家都在记笔记", b: "像路边摊，大家都在瞎聊天", c: "像沙龙，大家在探讨深度问题", d: "像展厅，大家安静地看，偶尔提问" },
+        { q: "你觉得“人设”对你来说：", a: "是职业信誉的背书", b: "是真实自我的放大镜", c: "是观察世界的视角", d: "是一件精心雕琢的艺术品" },
+        { q: "你最擅长的“反差”是：", a: "硬核技术 vs 极度通俗的类比", b: "严肃职业 vs 极度反差的幽默感", c: "极简画面 vs 极度深刻的思想", d: "现代科技 vs 极度复古的呈现" },
+        { q: "如果你有一个标志性动作，那会是：", a: "推眼镜/敲黑板", b: "战术性喝水/摊手", c: "标志性的转场/推拉镜头", d: "固定的开场白或结尾slogan" },
+        { q: "你的视频背景通常是：", a: "充满精密仪器的实验室", b: "杂乱但温馨的家或街头", c: "极简的白墙或深邃的暗色调", d: "精心布置的氛围灯+专业布景" },
+        { q: "你认为“陌生感”来源于：", a: "别人讲不清楚的硬核原理", b: "别人不敢说的真实槽点", c: "别人没想到的切入角度", d: "别人拍不出的质感画面" },
+        { q: "最后，你希望别人怎么评价你的账号？", a: "“学到了，这是真大神”", b: "“这人有意思，像我身边那个有趣的哥们”", c: "“视角独特，总能让我重新思考”", d: "“审美天花板，看他的视频是种享受”" }
+    ];
+
+    const results = {
+        A: { title: "🔥 干货大神", desc: "【定位】讲技术、讲方法、讲实操。别人听不懂的你一讲就明白。\n【外号】行走说明书、行业老法师。\n【逻辑】有用 → 收藏 → 跟着你学。\n【容易火】保姆级教程、避坑总结。" },
+        B: { title: "🔥 生活嘴替", desc: "【定位】敢说真话、爱吐槽、超真实。粉丝看你像看自己人。\n【外号】人间真实、搞笑打工人、互联网闺蜜。\n【逻辑】共鸣 → 转发 → 把你当朋友。\n【容易火】扎心吐槽、真实糗事。" },
+        C: { title: "🔥 独行侠", desc: "【定位】不跟风、爱思考。总能说出别人想不到的深度观点。\n【外号】逻辑刺客、反套路达人、人间清醒。\n【逻辑】颠覆认知 → 评论区讨论 → 佩服你脑子。\n【容易火】反常识点评、底层逻辑拆解。" },
+        D: { title: "🔥 颜狗", desc: "【定位】不靠嘴，靠画面、质感、氛围感抓人。审美高级。\n【外号】氛围感天花板、视觉治愈师。\n【逻辑】好看 → 停留久 → 审美太绝了。\n【容易火】极致画面、高级卡点、神仙构图。" }
+    };
+
+    let cur = 0, scores = {A:0, B:0, C:0, D:0};
+
+    function show() {
+        if(cur >= questions.length) {
+            document.getElementById('quiz-container').style.display='none';
+            document.getElementById('result-page').style.display='block';
+            let max = 'A'; for(let k in scores) if(scores[k] > scores[max]) max = k;
+            document.getElementById('result-title').innerText = "诊断结果：" + results[max].title;
+            document.getElementById('result-content').innerText = results[max].desc;
+            return;
+        }
+        const q = questions[cur];
+        document.getElementById('question-text').innerText = (cur + 1) + ". " + q.q;
+        let btns = '';
+        ['A', 'B', 'C', 'D'].forEach(k => {
+            btns += `<button class="option-btn" onclick="go('${k}')">${k}. ${q[k.toLowerCase()]}</button>`;
+        });
+        document.getElementById('options-container').innerHTML = btns;
+        document.getElementById('progress-inner').style.width = (cur / questions.length * 100) + '%';
+    }
+
+    window.go = k => { scores[k]++; cur++; show(); };
+    show();
+</script>
+</body>
+</html>
